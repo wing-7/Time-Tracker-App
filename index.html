@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ja">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="theme-color" content="#f4efe6">
+	<title>Focus Timer | Time Tracker</title>
+	<style>
+		:root { --paper:#f4efe6; --ink:#20251f; --muted:#6f756b; --line:#d8d2c6; --card:#fffdf8; --accent:#d95d39; --accent-dark:#aa3e26; --teal:#176b67; --shadow:0 18px 50px rgba(55,45,30,.09); }
+		* { box-sizing: border-box; }
+		body { min-width:320px; margin:0; color:var(--ink); background:var(--paper); font-family:Georgia,"Times New Roman",serif; }
+		button,input { font:inherit; } button { cursor:pointer; }
+		.shell { min-height:100vh; padding:28px clamp(20px,5vw,72px) 48px; background:radial-gradient(circle at 85% 8%,rgba(217,93,57,.12),transparent 28%),linear-gradient(135deg,rgba(23,107,103,.05),transparent 35%); }
+		.topbar,.content { width:min(1080px,100%); margin:auto; }
+		.topbar { display:flex; align-items:center; justify-content:space-between; padding-bottom:26px; border-bottom:1px solid var(--line); }
+		.brand { display:flex; align-items:center; gap:12px; font-size:18px; font-weight:bold; letter-spacing:.03em; }
+		.brand-mark { display:grid; place-items:center; width:34px; height:34px; color:white; background:var(--ink); border-radius:50%; font:15px Arial,sans-serif; }
+		.status { display:flex; align-items:center; gap:8px; color:var(--muted); font:12px Arial,sans-serif; letter-spacing:.08em; text-transform:uppercase; }
+		.status::before { width:7px; height:7px; content:""; background:#a5aa9f; border-radius:50%; }
+		.status.is-running::before { background:var(--accent); box-shadow:0 0 0 5px rgba(217,93,57,.12); }
+		.content { padding-top:clamp(42px,8vw,88px); }
+		.intro { max-width:580px; margin-bottom:44px; }
+		.eyebrow { margin:0 0 12px; color:var(--accent-dark); font:700 12px Arial,sans-serif; letter-spacing:.16em; text-transform:uppercase; }
+		h1 { margin:0; font-size:clamp(42px,7vw,76px); line-height:.96; font-weight:normal; letter-spacing:-.04em; }
+		.intro p { max-width:440px; margin:22px 0 0; color:var(--muted); font-size:17px; line-height:1.6; }
+		.workspace { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(280px,.85fr); gap:24px; align-items:stretch; }
+		.timer-panel,.settings-panel { border:1px solid var(--line); background:rgba(255,253,248,.76); box-shadow:var(--shadow); }
+		.timer-panel { display:flex; min-height:500px; flex-direction:column; align-items:center; justify-content:center; padding:44px 24px; }
+		.dial { position:relative; width:min(330px,76vw); aspect-ratio:1; }
+		.dial svg { width:100%; height:100%; transform:rotate(-90deg); }
+		.dial-track,.dial-progress { fill:none; stroke-width:9; } .dial-track { stroke:#e5dfd4; }
+		.dial-progress { stroke:var(--accent); stroke-linecap:round; transition:stroke-dashoffset .35s ease; }
+		.dial-copy { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+		.time { font:400 clamp(52px,9vw,76px)/1 Arial,sans-serif; letter-spacing:-.08em; }
+		.time-label { margin-top:12px; color:var(--muted); font-size:14px; }
+		.controls { display:flex; gap:12px; margin-top:28px; }
+		.primary,.secondary { min-height:48px; border:0; padding:0 25px; border-radius:2px; font:700 14px Arial,sans-serif; letter-spacing:.04em; }
+		.primary { color:white; background:var(--accent); } .primary:hover { background:var(--accent-dark); }
+		.secondary { color:var(--ink); background:transparent; border:1px solid var(--line); } .secondary:hover { border-color:var(--ink); }
+		.hint { margin:24px 0 0; color:var(--muted); font:11px Arial,sans-serif; letter-spacing:.04em; }
+		.settings-panel { padding:32px; }
+		.panel-heading { display:flex; justify-content:space-between; align-items:baseline; border-bottom:1px solid var(--line); padding-bottom:18px; }
+		h2 { margin:0; font-size:24px; font-weight:normal; } .panel-heading span { color:var(--muted); font:11px Arial,sans-serif; letter-spacing:.1em; text-transform:uppercase; }
+		.preset-list { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:26px 0 34px; }
+		.preset { padding:14px 12px; color:var(--ink); background:transparent; border:1px solid var(--line); text-align:left; }
+		.preset strong { display:block; margin-bottom:5px; font:700 14px Arial,sans-serif; } .preset small { color:var(--muted); font:12px Arial,sans-serif; }
+		.preset.active,.preset:hover { border-color:var(--teal); background:rgba(23,107,103,.07); }
+		.field-label { display:block; margin-bottom:10px; color:var(--muted); font:11px Arial,sans-serif; letter-spacing:.12em; text-transform:uppercase; }
+		.duration-fields { display:flex; align-items:center; gap:8px; } .duration-fields input { width:92px; padding:12px; color:var(--ink); background:var(--card); border:1px solid var(--line); font:20px Arial,sans-serif; }
+		.duration-fields input:focus { outline:2px solid rgba(23,107,103,.3); border-color:var(--teal); } .colon { font-size:24px; }
+		.notice { min-height:22px; margin-top:30px; color:var(--teal); font:13px Arial,sans-serif; line-height:1.5; }
+		@media (max-width:700px) { .topbar { padding-bottom:18px; } .status { font-size:0; } .workspace { grid-template-columns:1fr; } .timer-panel { min-height:420px; } .settings-panel { padding:26px 22px; } }
+	</style>
+</head>
+<body>
+	<main class="shell">
+		<header class="topbar"><div class="brand"><span class="brand-mark">TT</span><span>Time Tracker</span></div><div id="status" class="status">Ready to focus</div></header>
+		<section class="content">
+			<div class="intro"><p class="eyebrow">Study session</p><h1>Make time<br>for progress.</h1><p>ひとつの学習に集中する時間を決めて、今日の小さな前進を積み重ねましょう。</p></div>
+			<div class="workspace">
+				<section class="timer-panel" aria-label="タイマー"><div class="dial" aria-live="polite"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="dial-track" cx="60" cy="60" r="53"></circle><circle id="progress" class="dial-progress" cx="60" cy="60" r="53"></circle></svg><div class="dial-copy"><div id="time" class="time">25:00</div><div id="timeLabel" class="time-label">Ready when you are</div></div></div><div class="controls"><button id="startButton" class="primary" type="button">Start timer</button><button id="resetButton" class="secondary" type="button">Reset</button></div><p class="hint">SPACE で開始 / 一時停止</p></section>
+				<aside class="settings-panel"><div class="panel-heading"><h2>Session length</h2><span>Set your pace</span></div><div class="preset-list" aria-label="時間プリセット"><button class="preset active" type="button" data-minutes="25"><strong>Focus</strong><small>25 minutes</small></button><button class="preset" type="button" data-minutes="5"><strong>Quick break</strong><small>5 minutes</small></button><button class="preset" type="button" data-minutes="50"><strong>Deep work</strong><small>50 minutes</small></button><button class="preset" type="button" data-minutes="15"><strong>Short study</strong><small>15 minutes</small></button></div><label class="field-label" for="minutes">Custom duration</label><div class="duration-fields"><input id="minutes" type="number" min="0" max="999" value="25" inputmode="numeric" aria-label="分"><span class="colon">:</span><input id="seconds" type="number" min="0" max="59" value="00" inputmode="numeric" aria-label="秒"></div><div id="notice" class="notice" role="status"></div></aside>
+			</div>
+		</section>
+	</main>
+	<script>
+		const timeElement=document.getElementById("time"),timeLabel=document.getElementById("timeLabel"),statusElement=document.getElementById("status"),progressElement=document.getElementById("progress"),startButton=document.getElementById("startButton"),resetButton=document.getElementById("resetButton"),minutesInput=document.getElementById("minutes"),secondsInput=document.getElementById("seconds"),noticeElement=document.getElementById("notice"),circumference=2*Math.PI*53;
+		let totalSeconds=25*60,remainingSeconds=totalSeconds,timerId=null;
+		progressElement.style.strokeDasharray=circumference;
+		function updateDisplay(){const minutes=Math.floor(remainingSeconds/60),seconds=remainingSeconds%60;timeElement.textContent=`${String(minutes).padStart(2,"0")}:${String(seconds).padStart(2,"0")}`;progressElement.style.strokeDashoffset=circumference*(1-(totalSeconds?remainingSeconds/totalSeconds:0));document.title=`${timeElement.textContent} | Focus Timer`;}
+		function setDuration(minutes,seconds=0){totalSeconds=Math.max(1,minutes*60+seconds);remainingSeconds=totalSeconds;minutesInput.value=minutes;secondsInput.value=String(seconds).padStart(2,"0");noticeElement.textContent="";timeLabel.textContent="Ready when you are";updateDisplay();}
+		function finishTimer(){clearInterval(timerId);timerId=null;remainingSeconds=0;updateDisplay();startButton.textContent="Start again";statusElement.textContent="Session complete";statusElement.classList.remove("is-running");timeLabel.textContent="Well done today";noticeElement.textContent="セッションが完了しました。少し休憩しましょう。";if(typeof Notification!=="undefined"&&Notification.permission==="granted")new Notification("Time Tracker",{body:"セッションが完了しました。"});}
+		function toggleTimer(){if(timerId){clearInterval(timerId);timerId=null;startButton.textContent="Resume timer";statusElement.textContent="Paused";statusElement.classList.remove("is-running");timeLabel.textContent="Paused for now";return;}if(remainingSeconds<=0)setDuration(Number(minutesInput.value)||25,Number(secondsInput.value)||0);timerId=setInterval(()=>{remainingSeconds-=1;updateDisplay();if(remainingSeconds<=0)finishTimer();},1000);startButton.textContent="Pause timer";statusElement.textContent="In focus";statusElement.classList.add("is-running");timeLabel.textContent="Keep going";}
+		function applyCustomDuration(){if(timerId)return;const minutes=Math.min(999,Math.max(0,Number(minutesInput.value)||0)),seconds=Math.min(59,Math.max(0,Number(secondsInput.value)||0));setDuration(minutes,seconds);document.querySelectorAll(".preset").forEach(preset=>preset.classList.remove("active"));}
+		startButton.addEventListener("click",toggleTimer);resetButton.addEventListener("click",()=>{if(timerId)clearInterval(timerId);timerId=null;setDuration(Number(minutesInput.value)||25,Number(secondsInput.value)||0);startButton.textContent="Start timer";statusElement.textContent="Ready to focus";statusElement.classList.remove("is-running");});
+		document.querySelectorAll(".preset").forEach(preset=>preset.addEventListener("click",()=>{if(timerId)return;document.querySelectorAll(".preset").forEach(item=>item.classList.remove("active"));preset.classList.add("active");setDuration(Number(preset.dataset.minutes));}));minutesInput.addEventListener("change",applyCustomDuration);secondsInput.addEventListener("change",applyCustomDuration);document.addEventListener("keydown",event=>{if(event.code==="Space"&&event.target.tagName!=="INPUT"){event.preventDefault();toggleTimer();}});updateDisplay();
+	</script>
+</body>
+</html>

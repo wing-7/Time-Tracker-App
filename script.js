@@ -8,10 +8,52 @@ const minutesInput = document.getElementById("minutes");
 const secondsInput = document.getElementById("seconds");
 const noticeElement = document.getElementById("notice");
 const circumference = 2 * Math.PI * 53;
+const TIMER_HISTORY_KEY = "time-tracker-history";
+
+const timerHistory = {
+  getAll() {
+    try {
+      const storedHistory = JSON.parse(localStorage.getItem(TIMER_HISTORY_KEY) || "[]");
+      return Array.isArray(storedHistory) ? storedHistory : [];
+    } catch (error) {
+      return [];
+    }
+  },
+
+  add(session) {
+    const history = this.getAll();
+    history.push({
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      ...session,
+    });
+
+    try {
+      localStorage.setItem(TIMER_HISTORY_KEY, JSON.stringify(history));
+    } catch (error) {
+      // Ignore storage errors, such as private browsing restrictions.
+    }
+  },
+
+  clear() {
+    localStorage.removeItem(TIMER_HISTORY_KEY);
+  },
+
+  getByDate(date) {
+    const targetDate = new Date(date).toISOString().slice(0, 10);
+    return this.getAll().filter((session) => session.completedAt.slice(0, 10) === targetDate);
+  },
+
+  getTotalSeconds(sessions = this.getAll()) {
+    return sessions.reduce((total, session) => total + session.durationSeconds, 0);
+  },
+};
+
+window.timeTrackerData = timerHistory;
 
 let totalSeconds = 25 * 60;
 let remainingSeconds = totalSeconds;
 let timerId = null;
+let sessionStartedAt = null;
 
 progressElement.style.strokeDasharray = circumference;
 
@@ -66,6 +108,13 @@ function finishTimer() {
   clearInterval(timerId);
   timerId = null;
   remainingSeconds = 0;
+  timerHistory.add({
+    startedAt: sessionStartedAt || new Date().toISOString(),
+    completedAt: new Date().toISOString(),
+    durationSeconds: totalSeconds,
+    plannedDurationSeconds: totalSeconds,
+  });
+  sessionStartedAt = null;
   updateDisplay();
   playFinishSound();
   startButton.textContent = "Start again";
@@ -103,6 +152,8 @@ function toggleTimer() {
     }
   }, 1000);
 
+  sessionStartedAt = sessionStartedAt || new Date().toISOString();
+
   startButton.textContent = "Pause timer";
   statusElement.textContent = "In focus";
   statusElement.classList.add("is-running");
@@ -126,6 +177,8 @@ resetButton.addEventListener("click", () => {
     clearInterval(timerId);
     timerId = null;
   }
+
+  sessionStartedAt = null;
 
   setDuration(Number(minutesInput.value) || 25, Number(secondsInput.value) || 0);
   startButton.textContent = "Start timer";
